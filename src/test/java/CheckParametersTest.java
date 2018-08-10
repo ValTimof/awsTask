@@ -1,5 +1,9 @@
+import com.amazonaws.services.dynamodbv2.document.DynamoDB;
+import com.amazonaws.services.dynamodbv2.document.Table;
 import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
+import com.amazonaws.services.dynamodbv2.xspec.ExpressionSpecBuilder;
+import com.amazonaws.services.dynamodbv2.xspec.ScanExpressionSpec;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -42,8 +46,11 @@ public class CheckParametersTest {
         assertThat(service.getLambdaRuntimeConfiguration(lambdaName)).isEqualTo(RUNTIME_VALUE);
         assertThat(service.getLambdaHandlerConfiguration(lambdaName)).isEqualTo(HANDLER_VALUE);
 
+        ScanExpressionSpec xspec = new ExpressionSpecBuilder().buildForScan();
+        Table table = new DynamoDB(service.dynamoDBClient).getTable(tableName);
+        TableDescription tableInfo = table.describe();
 
-        TableDescription tableInfo = service.dynamoDBClient.describeTable(tableName).getTable();
+
         List<AttributeDefinition> attributes =
                 tableInfo.getAttributeDefinitions();
         System.out.println("Attributes");
