@@ -1,4 +1,4 @@
-package s3;
+package service;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -8,8 +8,7 @@ import com.amazonaws.services.s3.transfer.TransferProgress;
 public class XferMgrProgress {
 
     // waits for the transfer to complete, catching any exceptions that occur.
-    public static void waitForCompletion(Transfer xfer)
-    {
+    public static void waitForCompletion(Transfer xfer) {
         try {
             xfer.waitForCompletion();
         } catch (AmazonServiceException e) {
@@ -25,8 +24,7 @@ public class XferMgrProgress {
     }
 
     // Prints progress while waiting for the transfer to finish.
-    public static void showTransferProgress(Transfer xfer)
-    {
+    public static void showTransferProgress(Transfer xfer) {
         // print the transfer's human-readable description
         System.out.println(xfer.getDescription());
         // print an empty progress bar...
@@ -53,8 +51,7 @@ public class XferMgrProgress {
     }
 
     // prints a simple text progressbar: [#####     ]
-    public static void printProgressBar(double pct)
-    {
+    public static void printProgressBar(double pct) {
         // if bar_size changes, then change erase_bar (in eraseProgressBar) to
         // match.
         final int bar_size = 40;
@@ -66,8 +63,7 @@ public class XferMgrProgress {
     }
 
     // erases the progress bar.
-    public static void eraseProgressBar()
-    {
+    public static void eraseProgressBar() {
         // erase_bar is bar_size (from printProgressBar) + 4 chars.
         final String erase_bar = "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b";
         System.out.format(erase_bar);

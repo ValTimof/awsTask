@@ -1,11 +1,19 @@
 package enums;
 
 public enum StringConstants {
-    PROPERTIES_FILE("config"), BUCKET("bucketName"),  LAMBDA("lambdaName"), TABLE("tableName");
+    CONFIG("config"),
+    BUCKET("bucketName"),
+    LAMBDA("lambdaName"),
+    TABLE("tableName"),
+    FUNCTION_ARN("functionARN"),
+    AWS_SOURCE_ARN("AWS:SourceArn"),
+    RUNTIME("runtime"),
+    HANDLER("handlerName"),
+    TEST_PREFIX("test/");
 
-    public String text;
+    public final String key;
 
     StringConstants(String title) {
-        this.text = title;
+        this.key = title;
     }
 }
