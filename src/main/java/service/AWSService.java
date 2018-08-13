@@ -6,19 +6,19 @@ import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.document.DynamoDB;
 import com.amazonaws.services.dynamodbv2.document.ItemCollection;
 import com.amazonaws.services.dynamodbv2.document.Table;
-import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
-import com.amazonaws.services.dynamodbv2.model.AttributeValue;
-import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
-import com.amazonaws.services.dynamodbv2.model.TableDescription;
+import com.amazonaws.services.dynamodbv2.model.*;
 import com.amazonaws.services.dynamodbv2.xspec.ExpressionSpecBuilder;
-import com.amazonaws.services.dynamodbv2.xspec.QueryExpressionSpec;
 import com.amazonaws.services.dynamodbv2.xspec.ScanExpressionSpec;
+import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
+import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
+import com.amazonaws.services.identitymanagement.model.GetRolePolicyRequest;
+import com.amazonaws.services.identitymanagement.model.GetRolePolicyResult;
+import com.amazonaws.services.identitymanagement.model.NoSuchEntityException;
 import com.amazonaws.services.lambda.AWSLambda;
 import com.amazonaws.services.lambda.AWSLambdaClientBuilder;
 import com.amazonaws.services.lambda.model.FunctionConfiguration;
 import com.amazonaws.services.lambda.model.GetFunctionConfigurationRequest;
 import com.amazonaws.services.lambda.model.GetPolicyRequest;
-import com.amazonaws.services.lambda.model.ListFunctionsResult;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.Bucket;
@@ -37,33 +37,27 @@ import static enums.StringConstants.TEST_PREFIX;
 
 public class AWSService {
 
-    public final AmazonS3 s3Client;
-    private final AWSLambda lambdaClient;
-    public final AmazonDynamoDB dynamoDBClient;
+    private AmazonS3 s3Client;
+    public AWSLambda lambdaClient;
+    private AmazonDynamoDB dynamoDBClient;
+    private AmazonIdentityManagement iam;
 
-    public AWSService() {
+    private String bucketName;
+    private String lambdaName;
+    private String tableName;
+
+    public AWSService(String bucketName, String lambdaName, String tableName) {
         this.s3Client = AmazonS3ClientBuilder.defaultClient();
         this.dynamoDBClient = AmazonDynamoDBClientBuilder.defaultClient();
         this.lambdaClient = AWSLambdaClientBuilder.defaultClient();
+        this.iam = AmazonIdentityManagementClientBuilder.defaultClient();
+
+        this.bucketName = bucketName;
+        this.lambdaName = lambdaName;
+        this.tableName = tableName;
     }
 
-    public void uploadFileToBucket(String bucketName, String key, File file) {
-        TransferManager transferManager = TransferManagerBuilder.defaultTransferManager();
-        try {
-            Upload transfer = transferManager.upload(bucketName, key, file);
-            transfer.waitForCompletion();
-//            XferMgrProgress.showTransferProgress(transfer);
-//            XferMgrProgress.waitForCompletion(transfer);
-        } catch (AmazonServiceException e) {
-            System.err.println(e.getErrorMessage());
-            System.exit(1);
-        } catch (InterruptedException e) {
-            System.err.println("Transfer interrupted: " + e.getMessage());
-            System.exit(1);
-    }
-    }
-
-    public boolean doesBucketExist(String bucketName) {
+    public boolean doesBucketExist() {
         List<Bucket> buckets = s3Client.listBuckets();
         for (Bucket bucket : buckets) {
             if (bucket.getName().equals(bucketName)) {
@@ -73,16 +67,7 @@ public class AWSService {
         return false;
     }
 
-    public void deleteObjectFromBucket(String bucketName, String objectKey) {
-        try {
-            s3Client.deleteObject(bucketName, objectKey);
-        } catch (AmazonServiceException e) {
-            System.out.println(e.getErrorMessage());
-            System.exit(1);
-        }
-    }
-
-    public boolean doesLambdaExist(String lambdaName) {
+    public boolean doesLambdaExist() {
         List<FunctionConfiguration> functions = lambdaClient.listFunctions().getFunctions();
         for (FunctionConfiguration function : functions) {
             if (function.getFunctionName().equals(lambdaName)) {
@@ -92,44 +77,92 @@ public class AWSService {
         return false;
     }
 
-    public String getLambdaPolicyParameter(String lambdaName, String parameterName) {
+    public boolean doesDBTableExist() {
+        List<String> tableNames = dynamoDBClient.listTables().getTableNames();
+        for (String tName : tableNames) {
+            if (tName.equals(tableName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public void uploadFileToBucket(String key, File file) {
+        TransferManager transferManager = TransferManagerBuilder.defaultTransferManager();
+        try {
+            Upload myUpload = transferManager.upload(bucketName, key, file);
+            myUpload.waitForCompletion();
+        } catch (AmazonServiceException e) {
+            System.err.println(e.getErrorMessage());
+            System.exit(1);
+        } catch (InterruptedException e) {
+            System.err.println("Transfer interrupted: " + e.getMessage());
+            System.exit(1);
+        }
+    }
+
+    public String getBucketNotificationParameter(String parameterName) {
+        String notificationConfiguration = s3Client.getBucketNotificationConfiguration(bucketName).toString();
+        List<String> parameterValue = JsonPath.read(notificationConfiguration, "$.." + parameterName);
+        return parameterValue.toString();
+    }
+
+    public void deleteObjectFromBucket(String objectKey) {
+        try {
+            s3Client.deleteObject(bucketName, objectKey);
+        } catch (AmazonServiceException e) {
+            System.out.println(e.getErrorMessage());
+            System.exit(1);
+        }
+    }
+
+    public String getLambdaPolicyParameter(String parameterName) {
         String policy = lambdaClient.getPolicy(new GetPolicyRequest()
                 .withFunctionName(lambdaName)).getPolicy();
         List<String> parameterValue = JsonPath.read(policy, "$.." + parameterName);
         return parameterValue.toString();
     }
 
-    public String getBucketNotificationParameter(String bucketName, String parameterName) {
-        String notificationConfiguration = s3Client.getBucketNotificationConfiguration(bucketName).toString();
-        List<String> parameterValue = JsonPath.read(notificationConfiguration, "$.." + parameterName);
-        return parameterValue.toString();
-    }
-
-    public String getLambdaRuntimeConfiguration(String lambdaName) {
+    public String getLambdaRuntimeConfiguration() {
         return lambdaClient.getFunctionConfiguration(new GetFunctionConfigurationRequest()
                 .withFunctionName(lambdaName)).getRuntime();
     }
 
-    public String getLambdaHandlerConfiguration(String lambdaName) {
+    public String getLambdaHandlerConfiguration() {
         return lambdaClient.getFunctionConfiguration(new GetFunctionConfigurationRequest()
                 .withFunctionName(lambdaName)).getHandler();
     }
 
-    public boolean checkDBTable(String tableName, MyTable expectedTable) {
+    public boolean checkLambdaIAMPilicies(String policyName) {
+        String roleArn = lambdaClient.getFunctionConfiguration(new GetFunctionConfigurationRequest()
+                .withFunctionName(lambdaName)).getRole();
+        String roleName = roleArn.substring(roleArn.indexOf('/')+1, roleArn.length());
+        String rolePolicy = "";
+        try {
+            GetRolePolicyResult rolePolicyResult = iam.getRolePolicy(new GetRolePolicyRequest()
+                    .withPolicyName(policyName).withRoleName(roleName));
+            rolePolicy = rolePolicyResult.getRoleName();
+        } catch (NoSuchEntityException e) {
+            System.err.println(e.getMessage());
+        }
+        return !rolePolicy.equals("");
+    }
+
+    public boolean checkDBTable(MyTable expectedTable) {
         Table table = new DynamoDB(dynamoDBClient).getTable(tableName);
         TableDescription tableInfo = table.describe();
         List<AttributeDefinition> attributes =
                 tableInfo.getAttributeDefinitions();
         for (AttributeDefinition a : attributes) {
             if (!a.getAttributeName().equals(expectedTable.attributes.get(attributes.indexOf(a)).attributeName)
-                && !a.getAttributeType().equals(expectedTable.attributes.get(attributes.indexOf(a)).attributeType)) {
+                    && !a.getAttributeType().equals(expectedTable.attributes.get(attributes.indexOf(a)).attributeType)) {
                 return false;
             }
         }
         return true;
     }
 
-    public void putItemToDataBase(String tableName, Map<String, AttributeValue> itemValues) {
+    public void putItemToDataBase(Map<String, AttributeValue> itemValues) {
         try {
             dynamoDBClient.putItem(tableName, itemValues);
         } catch (ResourceNotFoundException e) {
@@ -143,7 +176,7 @@ public class AWSService {
         System.out.println("Done!");
     }
 
-    public boolean lambdaWasTriggered(String tableName) {
+    public boolean lambdaWasTriggeredOnUpload() {
         DynamoDB dynamoDB = new DynamoDB(dynamoDBClient);
         Table table = dynamoDB.getTable(tableName);
 
