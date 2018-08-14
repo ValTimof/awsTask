@@ -16,7 +16,7 @@ public class LambdaTest {
 
     private final Config config = new Config();
     private final MyTable myTable = new MyTable();
-    private final AWSService service = new AWSService(config.BUCKET_NAME, config.TABLE_NAME, config.LAMBDA_NAME);
+    private final AWSService service = new AWSService(config.BUCKET_NAME, config.LAMBDA_NAME, config.TABLE_NAME);
 
     @Test
     void whenUploadFileToS3_thenLambdaWasTriggered() throws IOException, InterruptedException {
@@ -27,20 +27,32 @@ public class LambdaTest {
         );
 
         File file = createSampleFile();
-        service.uploadFileToBucket(TEST_PREFIX.key + file.getName(), file);
-//        awaitUntil(); много ассертов
-        Thread.sleep(2000);
-        assertTrue(service.lambdaWasTriggeredOnUpload(), "The lambda not triggered");
+        String objectKey = service.uploadFileToBucket(TEST_PREFIX.key + file.getName(), file);
 
-        service.cleanUp();
+//        awaitUntil()
+        Thread.sleep(7000);
+        assertTrue(service.lambdaWasTriggered("ObjectCreated:Put" ,objectKey), "The lambda not triggered for upload");
+        System.out.println("The lambda was triggered");
+        service.cleanUp(objectKey);
     }
 
     @Test
-    void whenUploadFileToS3_andRemoveUploadedFileFromS3_thenLambdaWasTriggered() {
+    void whenUploadFileToS3_andRemoveUploadedFileFromS3_thenLambdaWasTriggered() throws IOException, InterruptedException {
         assertAll(
                 () -> assertTrue(service.doesBucketExist(), "The bucket can't be found."),
                 () -> assertTrue(service.doesLambdaExist(), "The lambda can't be found."),
                 () -> assertTrue(service.doesDBTableExist(), "The table can't be found.")
         );
+        File file = createSampleFile();
+        String objectKey = service.uploadFileToBucket(TEST_PREFIX.key + file.getName(), file);
+        service.deleteObjectFromBucket(objectKey);
+
+//        awaitUntil()
+        Thread.sleep(7000);
+        assertTrue(service.lambdaWasTriggered("ObjectCreated:Put" ,objectKey), "The lambda not triggered for upload");
+        assertTrue(service.lambdaWasTriggered("ObjectRemoved:Delete" ,objectKey), "The lambda not triggered for remove");
+        System.out.println("The lambda was triggered");
+
+        service.cleanDataBase(objectKey);
     }
 }

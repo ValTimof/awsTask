@@ -1,11 +1,12 @@
-import com.amazonaws.services.identitymanagement.AmazonIdentityManagement;
-import com.amazonaws.services.identitymanagement.AmazonIdentityManagementClientBuilder;
-import com.amazonaws.services.identitymanagement.model.*;
-import com.amazonaws.services.lambda.model.GetFunctionConfigurationRequest;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBStreams;
+import com.amazonaws.services.dynamodbv2.AmazonDynamoDBStreamsClientBuilder;
+import com.amazonaws.services.dynamodbv2.model.*;
 import dynamoDB.MyTable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import service.AWSService;
+
+import java.util.List;
 
 import static enums.StringConstants.AWS_SOURCE_ARN;
 import static enums.StringConstants.FUNCTION_ARN;
