@@ -1,19 +1,12 @@
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBStreams;
-import com.amazonaws.services.dynamodbv2.AmazonDynamoDBStreamsClientBuilder;
-import com.amazonaws.services.dynamodbv2.model.*;
 import dynamoDB.MyTable;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import service.AWSService;
-
-import java.util.List;
 
 import static enums.StringConstants.AWS_SOURCE_ARN;
 import static enums.StringConstants.FUNCTION_ARN;
 import static org.junit.jupiter.api.Assertions.*;
 
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class CheckParametersTest {
 
     private final Config config = new Config();
