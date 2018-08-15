@@ -51,7 +51,6 @@ public class AWSService {
     private String tableName;
 
     public AWSService(String bucketName, String lambdaName, String tableName) {
-//        System.setProperty("", "");
         this.s3Client = AmazonS3ClientBuilder.defaultClient();
         this.dynamoDBClient = AmazonDynamoDBClientBuilder.defaultClient();
         this.lambdaClient = AWSLambdaClientBuilder.defaultClient();

@@ -20,7 +20,7 @@ public class LambdaTest {
     private final AWSService service = new AWSService(config.BUCKET_NAME, config.LAMBDA_NAME, config.TABLE_NAME);
 
     @DisplayName("Check lambda when upload file")
-    @ParameterizedTest
+    @ParameterizedTest(name = "Upload file {index}")
     @MethodSource("file")
     void whenUploadFileToS3_thenLambdaWasTriggered(File file) {
         assertAll(
@@ -39,7 +39,7 @@ public class LambdaTest {
     }
 
     @DisplayName("Check lambda when upload and remove file")
-    @ParameterizedTest
+    @ParameterizedTest(name = "Upload file {index}")
     @MethodSource("file")
     void whenUploadFileToS3_andRemoveUploadedFileFromS3_thenLambdaWasTriggered(File file) {
         assertAll(
@@ -58,6 +58,6 @@ public class LambdaTest {
     }
 
     static Stream<File> file() throws IOException {
-        return Stream.of(createSampleFile(), createSampleFile());
+        return Stream.of(createSampleFile());
     }
 }
