@@ -1,3 +1,5 @@
+package tools;
+
 import java.util.ResourceBundle;
 
 import static enums.StringConstants.*;

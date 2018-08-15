@@ -1,9 +1,12 @@
-import dynamoDB.MyTable;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import service.AWSService;
+import tools.Config;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.stream.Stream;
 
 import static enums.StringConstants.*;
 import static org.awaitility.Awaitility.await;
@@ -14,17 +17,17 @@ import static tools.FileHandler.createSampleFile;
 public class LambdaTest {
 
     private final Config config = new Config();
-    private final MyTable myTable = new MyTable();
     private final AWSService service = new AWSService(config.BUCKET_NAME, config.LAMBDA_NAME, config.TABLE_NAME);
 
-    @Test
-    void whenUploadFileToS3_thenLambdaWasTriggered() throws IOException, InterruptedException {
+    @DisplayName("Check lambda when upload file")
+    @ParameterizedTest
+    @MethodSource("file")
+    void whenUploadFileToS3_thenLambdaWasTriggered(File file) {
         assertAll(
                 () -> assertTrue(service.doesBucketExist(), "The bucket can't be found."),
                 () -> assertTrue(service.doesLambdaExist(), "The lambda can't be found."),
                 () -> assertTrue(service.doesDBTableExist(), "The table can't be found.")
         );
-        File file = createSampleFile();
         String objectKey = service.uploadFileToBucket(TEST_PREFIX.key + file.getName(), file);
 
         await().until(service.newItemIsAdded(objectKey));
@@ -35,14 +38,15 @@ public class LambdaTest {
         service.cleanDataBase(objectKey);
     }
 
-    @Test
-    void whenUploadFileToS3_andRemoveUploadedFileFromS3_thenLambdaWasTriggered() throws IOException, InterruptedException {
+    @DisplayName("Check lambda when upload and remove file")
+    @ParameterizedTest
+    @MethodSource("file")
+    void whenUploadFileToS3_andRemoveUploadedFileFromS3_thenLambdaWasTriggered(File file) {
         assertAll(
                 () -> assertTrue(service.doesBucketExist(), "The bucket can't be found."),
                 () -> assertTrue(service.doesLambdaExist(), "The lambda can't be found."),
                 () -> assertTrue(service.doesDBTableExist(), "The table can't be found.")
         );
-        File file = createSampleFile();
         String objectKey = service.uploadFileToBucket(TEST_PREFIX.key + file.getName(), file);
         service.deleteObjectFromBucket(objectKey);
 
@@ -51,5 +55,9 @@ public class LambdaTest {
         assertTrue(service.lambdaWasTriggered(OBJECT_REMOVED.key, objectKey), "The lambda not triggered for remove");
 
         service.cleanDataBase(objectKey);
+    }
+
+    static Stream<File> file() throws IOException {
+        return Stream.of(createSampleFile(), createSampleFile());
     }
 }

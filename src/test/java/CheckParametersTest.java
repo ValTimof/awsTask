@@ -1,6 +1,8 @@
 import dynamoDB.MyTable;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import service.AWSService;
+import tools.Config;
 
 import static enums.StringConstants.AWS_SOURCE_ARN;
 import static enums.StringConstants.FUNCTION_ARN;
@@ -14,6 +16,7 @@ public class CheckParametersTest {
     private final AWSService service = new AWSService(config.BUCKET_NAME, config.LAMBDA_NAME, config.TABLE_NAME);
 
     @Test
+    @DisplayName("Checks parameters in s3, lambda and dynamodb")
     void checksParametersInS3LambdaAndDynamoDB() {
         assertAll(
                 () -> assertTrue(service.doesBucketExist(), "The bucket can't be found."),

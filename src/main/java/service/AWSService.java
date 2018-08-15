@@ -2,6 +2,7 @@ package service;
 
 import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
+import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDB;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClientBuilder;
 import com.amazonaws.services.dynamodbv2.document.*;
@@ -50,6 +51,7 @@ public class AWSService {
     private String tableName;
 
     public AWSService(String bucketName, String lambdaName, String tableName) {
+//        System.setProperty("", "");
         this.s3Client = AmazonS3ClientBuilder.defaultClient();
         this.dynamoDBClient = AmazonDynamoDBClientBuilder.defaultClient();
         this.lambdaClient = AWSLambdaClientBuilder.defaultClient();
@@ -114,6 +116,7 @@ public class AWSService {
                 .withFunctionName(lambdaName)).getHandler();
     }
 
+    //does not work yet
     public boolean checkLambdaIAMPilicies(String policyName) {
         String roleArn = lambdaClient.getFunctionConfiguration(new GetFunctionConfigurationRequest()
                 .withFunctionName(lambdaName)).getRole();
@@ -214,13 +217,12 @@ public class AWSService {
             DeleteItemSpec deleteItemSpec = new DeleteItemSpec()
                     .withPrimaryKey(itemPrimaryKey);
             table.deleteItem(deleteItemSpec);
-            System.out.printf("The item %s deleted from dynamo DB table\n", itemPrimaryKey.getComponents().toString());
         }
     }
 
     public Callable<Boolean> newItemIsAdded(String s3objectKey) {
         return () -> {
-            return getItemPrimaryKeys(s3objectKey).size() == 1; // The condition that must be fulfilled
+            return getItemPrimaryKeys(s3objectKey).size() > 0; // The condition that must be fulfilled
         };
     }
 
